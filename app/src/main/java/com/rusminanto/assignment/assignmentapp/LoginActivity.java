@@ -3,46 +3,36 @@ package com.rusminanto.assignment.assignmentapp;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
-import android.content.pm.PackageManager;
-import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
+import android.content.Intent;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
-import android.app.LoaderManager.LoaderCallbacks;
-
-import android.content.CursorLoader;
-import android.content.Loader;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.AsyncTask;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.Toast;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import com.rusminanto.assignment.assignmentapp.util.NetworkUtil;
+import com.rusminanto.assignment.assignmentapp.util.UserUtil;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import org.json.JSONException;
+import org.json.JSONObject;
 
-import static android.Manifest.permission.READ_CONTACTS;
+import java.util.concurrent.ExecutionException;
 
 /**
- * A login screen that offers login via email/password.
+ * A login screen that offers login via username and password.
  */
-public class LoginActivity extends AppCompatActivity implements OnClickListener {
+public class LoginActivity extends AppCompatActivity implements
+        OnClickListener,
+        NetworkUtil.OnLoadDataFinishedListener {
+
+    private NetworkUtil networkUtil;
+    private UserUtil userUtil;
 
     private EditText usernameView;
     private EditText mPasswordView;
@@ -53,16 +43,34 @@ public class LoginActivity extends AppCompatActivity implements OnClickListener 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        userUtil = new UserUtil(this);
+
+        networkUtil = new NetworkUtil();
+        networkUtil.setOnLoadDataFinishedListener(this);
+
         usernameView = (EditText) findViewById(R.id.username);
         mPasswordView = (EditText) findViewById(R.id.password);
 
         Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
+        assert mEmailSignInButton != null;
         mEmailSignInButton.setOnClickListener(this);
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        /**
+         * checking if user is logged in
+         */
+        if (userUtil.isLoggedIn()) {
+            startActivity(new Intent(LoginActivity.this, PromoActivity.class));
+            finish();
+        }
+    }
 
     /**
      * Attempts to sign in or register the account specified by the login form.
@@ -99,7 +107,16 @@ public class LoginActivity extends AppCompatActivity implements OnClickListener 
         } else {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
-            showProgress(true);
+            if (networkUtil.isInternetConnected(this)) {
+                showProgress(true);
+                try {
+                    networkUtil.getData(new String[]{BuildConfig.login_api, username, password}, NetworkUtil.HttpMethod.POST, NetworkUtil.Case.LOGIN);
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                Toast.makeText(this, getString(R.string.error_not_connected), Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
@@ -139,9 +156,44 @@ public class LoginActivity extends AppCompatActivity implements OnClickListener 
         }
     }
 
+    private void resetForm() {
+        usernameView.setText(null);
+        mPasswordView.setText(null);
+        usernameView.requestFocus();
+    }
+
     @Override
     public void onClick(View v) {
         attemptLogin();
+    }
+
+    @Override
+    public void onLoadDataFinished(final String result) {
+        new Handler(getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                showProgress(false);
+                try {
+                    if (result.contains("result")) {
+                        JSONObject jsonObject = new JSONObject(result);
+                        boolean isCorrectUser = (boolean) jsonObject.get("result");
+                        if (isCorrectUser) {
+                            userUtil.setUser(usernameView.getText().toString().trim(), mPasswordView.getText().toString().trim());
+                            startActivity(new Intent(LoginActivity.this, PromoActivity.class));
+                            finish();
+                        } else {
+                            resetForm();
+                            Toast.makeText(LoginActivity.this, getString(R.string.error_account_not_found), Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        resetForm();
+                        Toast.makeText(LoginActivity.this, getString(R.string.error_account_not_found), Toast.LENGTH_SHORT).show();
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 }
 

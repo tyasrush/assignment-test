@@ -6,7 +6,7 @@ class Data {
     public $name;
     public $city;    
     
-    function __construct($id, $name, $city)
+    function __construct($id, $name, $city) {
         $this->id = $id;
         $this->name = $name;
         $this->city = $city;
