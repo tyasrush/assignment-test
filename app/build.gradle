@@ -13,9 +13,9 @@ android {
     }
     buildTypes {
         debug {
-            buildConfigField 'String', 'login_api', '"http://prmcode.esy.es/login.php"'
-            buildConfigField 'String', 'city_api', '"http://prmcode.esy.es/listCity.php"'
-            buildConfigField 'String', 'promo_api', '"http://prmcode.esy.es/promo.php"'
+            buildConfigField 'String', 'login_api', '"http://tya-cek-promo.herokuapp.com/login.php"'
+            buildConfigField 'String', 'city_api', '"http://tya-cek-promo.herokuapp.com/listCity.php"'
+            buildConfigField 'String', 'promo_api', '"http://tya-cek-promo.herokuapp.com/promo.php"'
         }
 
         release {
