@@ -84,7 +84,7 @@ public class NetworkUtil {
                             onLoadDataFinishedListener.onLoadDataFinished(resultData);
                         }
 
-                        return response.body().string();
+//                        return response.body().string();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -106,7 +106,7 @@ public class NetworkUtil {
                             onLoadDataFinishedListener.onLoadDataFinished(resultData);
                         }
 
-                        return response.body().string();
+//                        return response.body().string();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
